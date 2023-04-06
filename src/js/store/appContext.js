@@ -22,7 +22,8 @@ const injectContext = (PassedComponent) => {
     // este es el useEffect que vamos a usar para "buscar informacion de las apis"
     useEffect(() => {
       // Esto es una "formula"
-      state.actions.fetchCharacters();
+      state.actions.fetchCharacters(); // Buscamos los personajes
+      state.actions.fetchPlanets(); // Buscamos los planetas
     }, []);
 
     return (

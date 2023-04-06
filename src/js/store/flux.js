@@ -1,49 +1,118 @@
 const getState = ({ getStore, getActions, setStore }) => {
-  // getStore, getActions, setStore
-  // El getStore nos permite conseguir el valor del store
-  // setStore nos permite modificar el store
-  // el getActions nos permite conseguir el valor de las acciones
   return {
     store: {
-      // Key user: Value "octavio"
       user: "Octavio",
       algo: "agregado",
       lastname: "Lara",
       todoList: ["Tarea de prueba"],
-      // -> declaramos el lugar donde vamos a guardar la informacion
-      characters: [],
+      personajesSwapi: [], // lista de personajes
+      planetasSwapi: [],
+      favorites: [],
     },
     actions: {
       funcionDemo: () => console.log("Me ejecuto en el flux"),
-      // declaramos nuestra funcion asincrona
-      // Esta funcion la ejecutamos en appContext
+      // Hace la consulta a la api y guarda los resultados
       fetchCharacters: async () => {
         try {
           const store = getStore();
-          const response = await fetch(
-            "https://rickandmortyapi.com/api/character"
+
+          // Busco en mi localStorage por "characters"
+          const localCharacters = JSON.parse(
+            localStorage.getItem("characters")
           );
-          const data = await response.json();
-          setStore({ ...store, characters: data.results });
+          // Si localCharacters existe
+          if (localCharacters) {
+            // Asigno ese valor a mi store
+            setStore({ ...store, personajesSwapi: localCharacters });
+            return; // Culmino mi funcion
+          }
+
+          // Se hace la primera peticion para traer la lista de personajes
+          const response = await fetch("https://www.swapi.tech/api/people/");
+          if (response.ok) {
+            const data = await response.json(); // La traducimos a js
+            const characters = data.results; // Extraemos la lista de personajes
+
+            // Declaramos un arreglo vacio que va a servir como nuestra lista nueva
+            let charactersDetails = [];
+
+            // Por cada personaje en nuestra lista
+            for (let character of characters) {
+              // Vamos a buscar sus detalles con el url
+              const detailResponse = await fetch(character.url);
+              const detailData = await detailResponse.json(); // traducir esa busqueda
+              // vamos a anexar a nuestra lista los resultados
+              charactersDetails.push(detailData.result);
+            }
+            // charactersDetails
+            // Hice todos mis fetch
+            localStorage.setItem(
+              "characters", // El nombre con el que se va a guardar
+              JSON.stringify(charactersDetails) // Lo convierto en un texto antes de guardar
+            );
+            // Asignamos el valor nuevo al store
+            setStore({ ...store, personajesSwapi: charactersDetails });
+          }
         } catch (error) {
           console.log(error);
         }
       },
-      // Para definir un accion
-      // hacemos: key nombreFuncion: (parametros) => {}
+      fetchPlanets: async () => {
+        try {
+          const store = getStore(); // Me traigo los valores del store
+
+          // Buscar en mi localStorage a los planetas
+          const localPlanets = JSON.parse(localStorage.getItem("planetas"));
+          if (localPlanets) {
+            setStore({ ...store, planetasSwapi: localPlanets });
+            return;
+          }
+
+          const response = await fetch("https://www.swapi.tech/api/planets/");
+          if (response.ok) {
+            const data = await response.json();
+
+            const planets = data.results; // extraer mi lista de planetas
+            const planetsWithDescription = [];
+
+            // Por cada planeta en planets
+            for (let planeta of planets) {
+              const detailsResponse = await fetch(planeta.url);
+              const detailsData = await detailsResponse.json(); // Traduzco la respuesta del servidor a JSON
+              planetsWithDescription.push(detailsData.result);
+            }
+
+            // Guardar los planetas en el localStorage
+            localStorage.setItem(
+              "planetas",
+              JSON.stringify(planetsWithDescription)
+            );
+            console.log(planetsWithDescription);
+            setStore({ ...store, planetasSwapi: planetsWithDescription });
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      },
       addTodo: (nuevaTarea) => {
-        // Se busca dentro del store el valor de todoList
-
-        // Busco la informacion del store
-        const store = getStore();
-
-        // Con la informacion del store creo una lista de tareas nueva
+        const store = getStore(); // declarar el store
         const newTareas = [...store.todoList, nuevaTarea];
-
-        // Con la funcion setStore actualizo el valor del store
-        // la funcion setStore reemplaza el valor anterior del store con uno nuevo
-        // { ...store, todoList: newTareas }
         setStore({ ...store, todoList: newTareas });
+      },
+      addFavorite: (item) => {
+        const store = getStore();
+        const favorites = store.favorites;
+        const exists = favorites.find((favorito) => favorito === item);
+        if (exists) {
+          const filteredFavorites = favorites.filter(
+            (favorito) => item !== favorito
+          );
+          setStore({ ...store, favorites: filteredFavorites });
+          return;
+        }
+        const newFavorites = [...favorites, item];
+        setStore({ ...store, favorites: newFavorites });
+        console.log("estoy en favoritos", newFavorites);
       },
     },
   };
